@@ -75,64 +75,23 @@ export const initDB = async () => {
   // PERSON CRUD
   // ---------------------------
   const createPerson = async (
-    connectionNumber: string | number,
     name: string,
-    amount: number,
-    monthTotal: number,
+    number: number,
     areaId: string
   ) => {
-    if (!String(connectionNumber).trim() || !name.trim() || !areaId)
+    if (!name.trim() || !number || !areaId)
       throw new Error("Invalid input");
-
-    // Prevent duplicate connection numbers (also check legacy `number` field)
-    await localDB.createIndex({ index: { fields: ["type", "connectionNumber", "number"] } });
-
-    const existing = await localDB.find({
-      selector: {
-        type: "person",
-        $or: [
-          { connectionNumber: String(connectionNumber) },
-          { number: String(connectionNumber) },
-        ],
-      },
-      limit: 1,
-    });
-
-    if (existing.docs && existing.docs.length > 0) {
-      throw new Error("Connection number already assigned");
-    }
 
     const doc = {
       _id: `person_${areaId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       type: "person",
-      connectionNumber: String(connectionNumber),
       name,
-      amount: typeof amount === 'number' ? amount : 0,
-      monthTotal: typeof monthTotal === 'number' ? monthTotal : 0,
+      number,
       areaId,
       createdAt: new Date().toISOString(),
     };
 
     return localDB.put(doc);
-  };
-
-  const getPersonByConnectionNumber = async (connectionNumber: string | number) => {
-    if (!String(connectionNumber).trim()) return null;
-
-    await localDB.createIndex({ index: { fields: ["type", "connectionNumber", "number"] } });
-
-    const res = await localDB.find({
-      selector: {
-        type: "person",
-        $or: [
-          { connectionNumber: String(connectionNumber) },
-          { number: String(connectionNumber) },
-        ],
-      },
-      limit: 1,
-    });
-
-    return res.docs && res.docs.length > 0 ? res.docs[0] : null;
   };
 
   const getPersonsByArea = async (areaId: string) => {
@@ -166,7 +125,7 @@ export const initDB = async () => {
     const q = query.toLowerCase();
 
     await localDB.createIndex({
-      index: { fields: ["type", "name", "number", "connectionNumber"] },
+      index: { fields: ["type", "name", "number"] },
     });
 
     const result = await localDB.find({
@@ -175,12 +134,79 @@ export const initDB = async () => {
         $or: [
           { name: { $regex: new RegExp(q, "i") } },
           { number: { $regex: new RegExp(q, "i") } },
-          { connectionNumber: { $regex: new RegExp(q, "i") } },
         ],
       },
     });
 
     return result.docs;
+  };
+
+  // ---------------------------
+  // AGGREGATION HELPERS
+  // ---------------------------
+  const totalConnections = async () => {
+    // Count only valid person docs (those with `name` and `areaId` present)
+    await localDB.createIndex({ index: { fields: ['type', 'name', 'areaId'] } });
+    const res = await localDB.find({
+      selector: {
+        type: 'person',
+        name: { $exists: true },
+        areaId: { $exists: true }
+      }
+    });
+    return res.docs.length;
+  };
+
+  // Debug helper: return all person docs (useful to inspect bogus/sample docs)
+  const getAllPersons = async () => {
+    await localDB.createIndex({ index: { fields: ['type', 'name', 'areaId', 'amount', 'createdAt'] } });
+    const res = await localDB.find({ selector: { type: 'person' } });
+    return res.docs;
+  };
+
+  const grandTotalRevenue = async () => {
+    await localDB.createIndex({ index: { fields: ['type', 'amount'] } });
+    const res = await localDB.find({ selector: { type: 'person' } });
+    return res.docs.reduce((sum: number, d: any) => sum + (Number(d.amount) || 0), 0);
+  };
+
+  const monthlyRevenue = async (year: number, month: number) => {
+    await localDB.createIndex({ index: { fields: ['type', 'createdAt', 'amount'] } });
+    const res = await localDB.find({ selector: { type: 'person' } });
+    const total = res.docs.reduce((sum: number, d: any) => {
+      if (!d.createdAt) return sum;
+      const dt = new Date(d.createdAt);
+      if (dt.getFullYear() === year && dt.getMonth() + 1 === month) {
+        return sum + (Number(d.amount) || 0);
+      }
+      return sum;
+    }, 0);
+    return total;
+  };
+
+  const monthlyRevenueHistory = async (monthsBack = 12) => {
+    await localDB.createIndex({ index: { fields: ['type', 'createdAt', 'amount'] } });
+    const res = await localDB.find({ selector: { type: 'person' } });
+
+    const map: Record<string, number> = {};
+    const now = new Date();
+
+    for (let i = 0; i < monthsBack; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      map[key] = 0;
+    }
+
+    res.docs.forEach((d: any) => {
+      if (!d.createdAt) return;
+      const dt = new Date(d.createdAt);
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      if (map[key] !== undefined) {
+        map[key] += (Number(d.amount) || 0);
+      }
+    });
+
+    return Object.keys(map).map((k) => ({ month: k, total: map[k] }));
   };
 
   // ---------------------------
@@ -197,10 +223,14 @@ export const initDB = async () => {
     getAreas,
     deleteArea,
     createPerson,
-    getPersonByConnectionNumber,
     getPersonsByArea,
     updatePerson,
     deletePerson,
     searchPersons,
+    totalConnections,
+    grandTotalRevenue,
+    monthlyRevenue,
+    monthlyRevenueHistory,
+    getAllPersons,
   };
 };

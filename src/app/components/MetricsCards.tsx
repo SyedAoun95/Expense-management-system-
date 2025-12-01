@@ -1,15 +1,21 @@
 import React from 'react';
 
-interface MetricCardProps {
+interface Metric {
   title: string;
-  value: string;
-  change: string;
-  trend: 'up' | 'down';
-  description: string;
+  value?: string;
+  change?: string;
+  trend?: 'up' | 'down';
+  description?: string;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ 
-  title, value, change, trend, description 
+interface MetricCardProps extends Metric {}
+
+const MetricCard: React.FC<MetricCardProps> = ({
+  title,
+  value = '$0.00',
+  change = '',
+  trend = 'up',
+  description = ''
 }) => {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
@@ -29,41 +35,46 @@ const MetricCard: React.FC<MetricCardProps> = ({
   );
 };
 
-const MetricsCards: React.FC = () => {
-  const metrics = [
+const MetricsCards: React.FC<{ metrics?: Metric[] }> = ({ metrics }) => {
+  const defaultMetrics: Metric[] = [
     {
-      title: 'Total Revenue',
-      value: '$1,250.00',
-      change: '-12.5%',
-      trend: 'down' as const,
-      description: 'Trending down this month - Needs attention'
+      title: 'Monthly Revenue',
+      value: '$0.00',
+      change: '',
+      trend: 'up',
+      description: 'Revenue collected this month'
     },
     {
-      title: 'New Customers',
-      value: '1,234',
-      change: '-20%',
-      trend: 'down' as const,
-      description: 'Down 20% this period - Acquisition needs attention'
+      title: 'All-Time Revenue',
+      value: '$0.00',
+      change: '',
+      trend: 'up',
+      description: 'Total revenue to date'
     },
     {
-      title: 'Active Accounts',
-      value: '45,678',
-      change: '-12.5%',
-      trend: 'down' as const,
-      description: 'Strong user retention - Engagement exceeds targets'
+      title: 'Active Areas',
+      value: '0',
+      change: '',
+      trend: 'up',
+      description: 'Number of active areas'
     },
     {
-      title: 'Growth Rate',
-      value: '4.5%',
-      change: '-4.5%',
-      trend: 'down' as const,
-      description: 'Steady performance increase - Meets growth projections'
+      title: 'Active Connections',
+      value: '0',
+      change: '',
+      trend: 'up',
+      description: 'Number of active connections'
     }
   ];
 
+  const finalMetrics = defaultMetrics.map((def, i) => ({
+    ...def,
+    ...(metrics && metrics[i] ? metrics[i] : {})
+  }));
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {metrics.map((metric, index) => (
+      {finalMetrics.map((metric, index) => (
         <MetricCard key={index} {...metric} />
       ))}
     </div>
