@@ -14,7 +14,7 @@ import {
   faFileLines,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from 'next/link';
-
+// icons for sidebar menu
 const menuItems = [
   { name: "Dashboard", icon: faGauge, href: "/dashboard" }, // <-- NEW ITEM
   { name: "Add Area", icon: faLocationDot, href: "/areas" },
