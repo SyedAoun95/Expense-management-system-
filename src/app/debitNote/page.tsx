@@ -133,7 +133,7 @@ export default function CashReceivedPage() {
 	return (
 		<div className="min-h-screen bg-gray-50 p-6">
 			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Cash Received From Customer</h1>
+				<h1 className="text-2xl font-bold text-black">Cash Received From Customer</h1>
 				<p className="text-sm text-gray-600">Enter received amounts per person and month</p>
 			</div>
 
