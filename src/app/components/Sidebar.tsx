@@ -11,6 +11,7 @@ import {
   faSearch,
   faClipboardList,
   faReceipt,
+  faFileLines,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from 'next/link';
 
@@ -22,6 +23,7 @@ const menuItems = [
   { name: "Update Record", icon: faPenToSquare, href: "/update-record" },
   { name: "Find Record", icon: faSearch, href: "/searchperson" },
   { name: "Find Person Record", icon: faClipboardList, href: "/find-person" },
+  { name: "Report Menu", icon: faFileLines, href: "/ReportMenu" },
   { name: "Cash Received", icon: faReceipt, href: "/debitNote" },
 ];
 
