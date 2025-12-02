@@ -1,6 +1,6 @@
 
 "use client";
-
+// debit not page created still settings needed to be made in that page
 import React, { useEffect, useState } from "react";
 import { initDB } from "../services/db";
 
